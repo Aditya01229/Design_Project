@@ -14,8 +14,12 @@ export async function GET() {
     client.release();
 
     return NextResponse.json({ message: "✅ Database connected successfully!" });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Database connection error:", error);
-    return NextResponse.json({ error: "Database connection failed", details: error.message }, { status: 500 });
+    let message = "Unknown error";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    return NextResponse.json({ error: "Database connection failed", details: message }, { status: 500 });
   }
 }

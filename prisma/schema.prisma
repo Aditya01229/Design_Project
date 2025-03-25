@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -30,7 +24,47 @@ model User {
   location String?
 
   createdAt DateTime @default(now())
+
+  // Relations
+  events Event[] @relation("EventOrganizer")
+  jobs   Job[]   @relation("JobPoster")
+
+  JobApplication JobApplication[]
 }
+
+model Event {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  location    String
+  organizer   User    @relation("EventOrganizer", fields: [organizerId], references: [id])
+  organizerId String
+  createdAt   DateTime @default(now())
+}
+
+model Job {
+  id          String  @id @default(uuid())
+  title       String
+  company     String
+  location    String
+  description String
+  postedBy    User    @relation("JobPoster", fields: [postedById], references: [id])
+  postedById  String
+  createdAt   DateTime @default(now())
+
+  JobApplication JobApplication[]
+}
+
+model JobApplication {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  user      User     @relation(fields: [userId], references: [id])
+  job       Job      @relation(fields: [jobId], references: [id])
+  createdAt DateTime @default(now())
+}
+
 
 enum UserType {
   STUDENT
