@@ -65,10 +65,7 @@ model JobApplication {
   createdAt DateTime @default(now())
 }
 
-
 enum UserType {
   STUDENT
   ALUMNI
 }
-
-
