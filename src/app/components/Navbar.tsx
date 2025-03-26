@@ -44,7 +44,7 @@ export default function Navbar() {
             <>
               <Link href="/dashboard" className="hover:text-blue-500">Dashboard</Link>
               <Link href="/activity" className="hover:text-blue-500">Recent Alumni Activity</Link>
-              <Link href="/communities" className="hover:text-blue-500">Communities</Link>
+              <Link href="/community" className="hover:text-blue-500">Communities</Link>
               <Link href="/profile" className="hover:text-blue-500">Profile</Link>
 
               <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-lg">

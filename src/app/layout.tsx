@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Navbar from "./components/Navbar";
+import "./globals.css"; // Ensure this path points to your global CSS file
+import { ReactNode } from "react";
+import Navbar from "./components/Navbar"; // ✅ Normal import instead of dynamic()
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,14 +21,12 @@ export const metadata: Metadata = {
   description: "Connect with alumni, explore opportunities, and stay updated!",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
+      >
         <Navbar />
         <main>{children}</main>
       </body>
