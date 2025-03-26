@@ -3,12 +3,14 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Await the params to access its properties asynchronously.
+    const { id } = await params;
+    
     // Find all applications for the given userId
-    const userId = params.id;
     const applications = await prisma.jobApplication.findMany({
-      where: { userId },
+      where: { userId: id },
       select: { jobId: true }, // Only select jobId
     });
 

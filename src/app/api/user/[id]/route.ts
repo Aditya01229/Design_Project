@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 /**
  * GET - Fetch user by ID
  */
-export async function GET(req: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   try {
     const { id: userId } = await context.params; 
 
@@ -20,6 +20,7 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Remove password from the returned user object
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...userWithoutPassword } = user;
     return NextResponse.json(userWithoutPassword, { status: 200 });
@@ -31,15 +32,16 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
 /**
  * PATCH - Update user details
  */
-export async function PATCH(req: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   try {
-    const { id: userId } = context.params; 
+    const { id: userId } = await context.params; 
     const body = await req.json();
 
     if (!userId) {
       return NextResponse.json({ message: "User ID is required" }, { status: 400 });
     }
 
+    // Remove fields that should not be updated
     delete body.email;
     delete body.password;
     delete body.id;
@@ -58,9 +60,9 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
 /**
  * DELETE - Remove user by ID
  */
-export async function DELETE(req: NextRequest, context: { params: { id: string } }): Promise<NextResponse> {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   try {
-    const { id: userId } = context.params; 
+    const { id: userId } = await context.params; 
 
     if (!userId) {
       return NextResponse.json({ message: "User ID is required" }, { status: 400 });
