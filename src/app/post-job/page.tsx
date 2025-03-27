@@ -59,59 +59,115 @@ export default function PostJob() {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-      <h1 className="text-2xl font-bold mb-4 text-blue-600">Post a Job</h1>
+    <div className="max-w-xl mx-auto p-8 bg-gradient-to-br from-white to-gray-50 shadow-xl rounded-2xl mt-10 border border-gray-100">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+        <span className="bg-blue-600 text-white p-1 rounded-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </span>
+        Post a Job
+      </h1>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      {success && <p className="text-green-500 mb-4">{success}</p>}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md">
+          <p className="text-red-700 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {error}
+          </p>
+        </div>
+      )}
+      
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-md">
+          <p className="text-green-700 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {success}
+          </p>
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="title"
-          placeholder="Job Title"
-          value={form.title}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700">Job Title</label>
+          <input
+            id="title"
+            type="text"
+            name="title"
+            placeholder="e.g. Senior Frontend Developer"
+            value={form.title}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
+            required
+          />
+        </div>
 
-        <input
-          type="text"
-          name="company"
-          placeholder="Company Name"
-          value={form.company}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div className="space-y-2">
+          <label htmlFor="company" className="block text-sm font-medium text-gray-700">Company Name</label>
+          <input
+            id="company"
+            type="text"
+            name="company"
+            placeholder="e.g. Acme Inc."
+            value={form.company}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
+            required
+          />
+        </div>
 
-        <input
-          type="text"
-          name="location"
-          placeholder="Job Location"
-          value={form.location}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div className="space-y-2">
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700">Job Location</label>
+          <input
+            id="location"
+            type="text"
+            name="location"
+            placeholder="e.g. Remote, New York, NY"
+            value={form.location}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
+            required
+          />
+        </div>
 
-        <textarea
-          name="description"
-          placeholder="Job Description"
-          value={form.description}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          rows={4}
-          required
-        ></textarea>
+        <div className="space-y-2">
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Job Description</label>
+          <textarea
+            id="description"
+            name="description"
+            placeholder="Describe the job responsibilities, requirements, and benefits..."
+            value={form.description}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
+            rows={6}
+            required
+          ></textarea>
+        </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+          className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+            loading 
+              ? "bg-blue-400 cursor-not-allowed" 
+              : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
+          }`}
           disabled={loading}
         >
-          {loading ? "Posting..." : "Post Job"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Posting...
+            </span>
+          ) : (
+            "Post Job"
+          )}
         </button>
       </form>
     </div>
