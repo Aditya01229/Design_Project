@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { Activity, Image, Send } from 'lucide-react';
 import PostItem from "../components/activity/PostItem";
 
 interface User {
@@ -13,16 +14,23 @@ interface User {
 interface Comment {
   id: string;
   content: string;
-  author: { name: string };
+  author: { name: string; fullName: string };
+  createdAt: string;
+}
+
+interface Like {
+  id: string;
+  userId: string;
 }
 
 interface Post {
   id: string;
-  author: { name: string };
+  author: { name: string; fullName: string };
   content: string;
-  likes: number;
+  likes: Like[];
   comments: Comment[];
   imageUrl?: string;
+  createdAt: string;
 }
 
 export default function ActivityPage() {
@@ -32,6 +40,7 @@ export default function ActivityPage() {
   const [newPost, setNewPost] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch user details from token
   useEffect(() => {
@@ -70,68 +79,131 @@ export default function ActivityPage() {
   // Handle new post submission with content and imageUrl
   const handlePostSubmit = async () => {
     if (!user || newPost.trim() === "") return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const res = await fetch("/api/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newPost, imageUrl, authorId: user.userId }),
+      });
 
-    const res = await fetch("/api/activity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: newPost, imageUrl, authorId: user.userId }),
-    });
-
-    if (res.ok) {
-      const createdPost = await res.json();
-      setPosts([createdPost, ...posts]); // Prepend the new post
-      setNewPost(""); // Clear post content
-      setImageUrl(""); // Clear image URL input
-    } else {
-      console.error("Failed to create post:", await res.text());
+      if (res.ok) {
+        const createdPost = await res.json();
+        setPosts([createdPost, ...posts]); // Prepend the new post
+        setNewPost(""); // Clear post content
+        setImageUrl(""); // Clear image URL input
+      } else {
+        console.error("Failed to create post:", await res.text());
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) return <p className="text-center mt-10 text-gray-700">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto p-4 sm:p-6">
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="h-8 w-8 bg-indigo-100 rounded-full animate-pulse"></div>
+          <div className="h-8 w-40 bg-indigo-100 rounded-md animate-pulse"></div>
+        </div>
+        
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="mb-6 rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-gray-100 animate-pulse"></div>
+              <div>
+                <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mb-2"></div>
+                <div className="h-3 w-24 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="h-4 w-full bg-gray-100 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse"></div>
+            </div>
+            <div className="h-48 bg-gray-50 animate-pulse"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-blue-600 mb-4">Activity Feed</h1>
+    <div className="max-w-3xl mx-auto p-4 sm:p-6">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 flex items-center">
+        <span className="bg-indigo-100 text-indigo-600 p-2 rounded-full mr-3">
+          <Activity className="h-5 w-5" />
+        </span>
+        Alumni Activity
+      </h1>
 
       {/* New Post Input (Only for Alumni) */}
       {user?.userType === "ALUMNI" && (
-        <div className="bg-white shadow-md p-4 rounded-lg mb-6">
-          <textarea
-            className="w-full p-2 border rounded mb-2"
-            placeholder="Share something..."
-            value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-          />
-          <input
-            type="text"
-            className="w-full p-2 border rounded mb-2"
-            placeholder="Paste image URL (optional)"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-          />
-          <button
-            onClick={handlePostSubmit}
-            className="bg-blue-500 text-white px-4 py-2 mt-2 rounded hover:bg-blue-600"
-          >
-            Post
-          </button>
+        <div className="bg-white shadow-md rounded-xl p-4 mb-8 border border-gray-100">
+          <div className="space-y-3">
+            <textarea
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all duration-200 resize-none min-h-[100px]"
+              placeholder="Share something with the community..."
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+            />
+            
+            <div className="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg bg-gray-50">
+              <Image className="h-5 w-5 text-gray-500" />
+              <input
+                type="text"
+                className="flex-1 p-1 bg-transparent border-none focus:outline-none text-sm"
+                placeholder="Paste image URL (optional)"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                onClick={handlePostSubmit}
+                disabled={isSubmitting || newPost.trim() === ""}
+                className={`
+                  flex items-center space-x-2 px-5 py-2 rounded-lg text-white font-medium
+                  ${isSubmitting || newPost.trim() === "" 
+                    ? "bg-indigo-300 cursor-not-allowed" 
+                    : "bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all duration-200"
+                  }
+                `}
+              >
+                <Send className="h-4 w-4" />
+                <span>{isSubmitting ? "Posting..." : "Post"}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Posts List */}
-      {posts.length === 0 ? (
-        <p className="text-gray-600 text-center">No posts yet.</p>
-      ) : (
-        posts.map((post) => (
-          <PostItem
-            key={post.id}
-            post={post}
-            refreshPosts={refreshPosts}
-            currentUserId={user?.userId || null}
-            userType={user?.userType || null}
-          />
-        ))
-      )}
+      <div className="space-y-6">
+        {posts.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-gray-500 mb-2">No posts yet.</p>
+            {user?.userType === "ALUMNI" && (
+              <p className="text-sm text-indigo-600">Be the first to share something!</p>
+            )}
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostItem
+              key={post.id}
+              post={post}
+              refreshPosts={refreshPosts}
+              currentUserId={user?.userId || null}
+              userType={user?.userType || null}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
