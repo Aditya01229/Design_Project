@@ -36,95 +36,83 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
-  const [appliedJobs, setAppliedJobs] = useState<string[]>([]); // Track job IDs applied for
+  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch User, Events, and Jobs
+  // Fetch all data (User, Events, Jobs)
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-    try {
-      const decoded: { userId: string } = jwtDecode(token);
-      fetch(`/api/user/${decoded.userId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setUser(data); // Set user first
-          return Promise.all([
-            fetch("/api/events").then((res) => res.json()),
-            fetch("/api/jobs").then((res) => res.json()),
-          ]);
-        })
-        .then(([eventData, jobData]) => {
-          setEvents(eventData);
-          setJobs(jobData);
-        })
-        .catch((err) => console.error("Error fetching data:", err))
-        .finally(() => setLoading(false));
-    } catch (error) {
-      console.error("Invalid token:", error);
-      router.push("/login");
-    }
+    const fetchData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return router.push("/login");
+
+      try {
+        const decoded: { userId: string } = jwtDecode(token);
+        const userRes = await fetch(`/api/user/${decoded.userId}`);
+        const userData = await userRes.json();
+        setUser(userData);
+
+        const [eventRes, jobRes] = await Promise.all([
+          fetch("/api/events"),
+          fetch("/api/jobs"),
+        ]);
+        const eventData = await eventRes.json();
+        const jobData = await jobRes.json();
+
+        setEvents(Array.isArray(eventData) ? eventData : []);
+        setJobs(Array.isArray(jobData) ? jobData : []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // Filter jobs posted by Alumni after user & jobs are set
+  // Filter jobs posted by the alumni
   useEffect(() => {
-    if (!user) return;
-    const filteredJobs = jobs.filter(
-      (job) => String(job.postedById) === String(user.id)
-    );
-    setMyJobs(filteredJobs);
+    if (user?.userType === "ALUMNI") {
+      setMyJobs(jobs.filter((job) => String(job.postedById) === String(user.id)));
+    }
   }, [user, jobs]);
 
-  // Fetch applied jobs for the student (if user is a STUDENT)
+  // Fetch applied jobs for students
   useEffect(() => {
-    if (user && user.userType === "STUDENT") {
+    if (user?.userType === "STUDENT") {
       fetch(`/api/applied/${user.id}`)
         .then((res) => res.json())
         .then((data) => {
-          // Assume data is an array of job application objects with a jobId field
-          const appliedIds = data.map((app: { jobId: string }) => app.jobId);
-          setAppliedJobs(appliedIds);
+          setAppliedJobs(data.map((app: { jobId: string }) => app.jobId));
         })
         .catch((err) => console.error("Error fetching applied jobs:", err));
     }
   }, [user]);
 
-  const handlePostJob = () => {
-    router.push("/post-job"); // Redirect to a job posting page
-  };
+  const handlePostJob = () => router.push("/post-job");
 
-  // Function for students to apply for a job
   const handleApplyJob = async (jobId: string) => {
     if (!user) return;
     try {
-      const response = await fetch("/api/apply", {
+      const res = await fetch("/api/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, jobId }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        // Smoothly update the UI by updating the state
-        setAppliedJobs((prev) => [...prev, jobId]);
-      } else {
-        console.error(`Error: ${data.message}`);
-      }
+
+      if (res.ok) setAppliedJobs((prev) => [...prev, jobId]);
+      else console.error("Error applying for job:", await res.json());
     } catch (error) {
       console.error("Error applying for job:", error);
     }
   };
 
-  // Function for Alumni to download the list of applicants for a given job
   const handleDownloadApplications = async (jobId: string) => {
     try {
-      const response = await fetch(`/api/download-applications?jobId=${jobId}`);
-      if (!response.ok) {
-        throw new Error("Failed to download applications");
-      }
-      const blob = await response.blob();
+      const res = await fetch(`/api/download-applications?jobId=${jobId}`);
+      if (!res.ok) throw new Error("Failed to download applications");
+
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -138,140 +126,88 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
-    return <p className="text-center mt-10 text-gray-700">Loading...</p>;
-  }
+  if (loading) return <p className="text-center mt-10 text-gray-700">Loading...</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <h1 className="text-3xl font-bold mb-6 text-blue-600">
-        Welcome, {user?.fullName} 👋
-      </h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-600">Welcome, {user?.fullName} 👋</h1>
 
-      {/* Alumni Exclusive: Post Job Button */}
       {user?.userType === "ALUMNI" && (
         <div className="mb-6 flex justify-end">
-          <button
-            onClick={handlePostJob}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-          >
+          <button onClick={handlePostJob} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
             ➕ Post a Job
           </button>
         </div>
       )}
 
-      {/* Events Section */}
-      <section className="bg-white shadow-lg p-6 rounded-lg mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-          🎉 Upcoming Events
-        </h2>
+      <Section title="🎉 Upcoming Events">
         {events.length > 0 ? (
-          <div className="space-y-4">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="p-4 border rounded-lg shadow hover:shadow-md transition"
-              >
-                <h3 className="font-bold text-lg">{event.title}</h3>
-                <p className="text-gray-600 text-sm">{event.description}</p>
-                <p className="text-gray-500 text-sm mt-2">
-                  {new Date(event.date).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
+          events.map((event) => (
+            <Card key={event.id} title={event.title} description={event.description} footer={new Date(event.date).toLocaleDateString()} />
+          ))
         ) : (
           <p className="text-gray-500">No upcoming events.</p>
         )}
-      </section>
+      </Section>
 
-      {/* Jobs Section */}
-      <section className="bg-white shadow-lg p-6 rounded-lg mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-          💼 Latest Job Openings
-        </h2>
+      <Section title="💼 Latest Job Openings">
         {jobs.length > 0 ? (
-          <div className="space-y-4">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="p-4 border rounded-lg shadow hover:shadow-md transition"
-              >
-                <h3 className="font-bold text-lg">
-                  {job.title} - {job.company}
-                </h3>
-                <p className="text-gray-600 text-sm">{job.description}</p>
-                <p className="text-gray-500 text-sm mt-2">{job.location}</p>
-                {/* Apply Button for Students */}
-                {user?.userType === "STUDENT" && (
-                  <>
-                    {appliedJobs.includes(job.id) ? (
-                      <button
-                        disabled
-                        className="mt-3 px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed transition"
-                      >
-                        Applied
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleApplyJob(job.id)}
-                        className="mt-3 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition"
-                      >
-                        ✅ Apply for Job
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
+          jobs.map((job) => (
+            <Card key={job.id} title={`${job.title} - ${job.company}`} description={job.description} footer={job.location}>
+              {user?.userType === "STUDENT" &&
+                (appliedJobs.includes(job.id) ? (
+                  <DisabledButton text="Applied" />
+                ) : (
+                  <ActionButton text="✅ Apply for Job" onClick={() => handleApplyJob(job.id)} />
+                ))}
+            </Card>
+          ))
         ) : (
           <p className="text-gray-500">No job openings available.</p>
         )}
-      </section>
+      </Section>
 
-      {/* Alumni Exclusive: My Posted Jobs Section */}
       {user?.userType === "ALUMNI" && (
-        <section className="bg-white shadow-lg p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            📌 Your Posted Jobs
-          </h2>
+        <Section title="📌 Your Posted Jobs">
           {myJobs.length > 0 ? (
-            <div className="space-y-4">
-              {myJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="p-4 border rounded-lg shadow hover:shadow-md transition flex flex-col gap-3"
-                >
-                  <div>
-                    <h3 className="font-bold text-lg">
-                      {job.title} - {job.company}
-                    </h3>
-                    <p className="text-gray-600 text-sm">{job.description}</p>
-                    <p className="text-gray-500 text-sm mt-2">
-                      {job.location}
-                    </p>
-                  </div>
-                  <div className="flex gap-4">
-                    {/* Download Excel Button */}
-                    <button
-                      onClick={() => handleDownloadApplications(job.id)}
-                      className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition"
-                    >
-                      📥 Download Excel
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            myJobs.map((job) => (
+              <Card key={job.id} title={`${job.title} - ${job.company}`} description={job.description} footer={job.location}>
+                <ActionButton text="📥 Download Excel" onClick={() => handleDownloadApplications(job.id)} />
+              </Card>
+            ))
           ) : (
-            <p className="text-gray-500">
-              You haven&apos;t posted any jobs yet.
-            </p>
+            <p className="text-gray-500">You haven&apos;t posted any jobs yet.</p>
           )}
-        </section>
+        </Section>
       )}
     </div>
   );
 }
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="bg-white shadow-lg p-6 rounded-lg mb-6">
+    <h2 className="text-xl font-semibold mb-4 text-gray-800">{title}</h2>
+    <div className="space-y-4">{children}</div>
+  </section>
+);
+
+const Card = ({ title, description, footer, children }: { title: string; description: string; footer?: string; children?: React.ReactNode }) => (
+  <div className="p-4 border rounded-lg shadow hover:shadow-md transition">
+    <h3 className="font-bold text-lg">{title}</h3>
+    <p className="text-gray-600 text-sm">{description}</p>
+    {footer && <p className="text-gray-500 text-sm mt-2">{footer}</p>}
+    {children && <div className="mt-3">{children}</div>}
+  </div>
+);
+
+const ActionButton = ({ text, onClick }: { text: string; onClick: () => void }) => (
+  <button onClick={onClick} className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+    {text}
+  </button>
+);
+
+const DisabledButton = ({ text }: { text: string }) => (
+  <button disabled className="px-4 py-2 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed transition">
+    {text}
+  </button>
+);
