@@ -26,7 +26,6 @@ model User {
   createdAt DateTime @default(now())
 
   // Relations
-  events Event[] @relation("EventOrganizer")
   jobs   Job[]   @relation("JobPoster")
 
   JobApplication JobApplication[]
@@ -50,8 +49,6 @@ model Event {
   description String
   date        DateTime
   location    String
-  organizer   User    @relation("EventOrganizer", fields: [organizerId], references: [id])
-  organizerId String
   createdAt   DateTime @default(now())
 }
 

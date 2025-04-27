@@ -1,19 +1,41 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Menu, X, User, LayoutDashboard, Users, Activity, LogOut } from 'lucide-react';
+import { GraduationCap, Menu, X, User, LayoutDashboard, Users, Activity, LogOut, Search } from 'lucide-react';
+import jwt from "jsonwebtoken";  // Import jwt for decoding tokens
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);  // State to track if user is an admin
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const checkLoginStatus = () => {
       const token = localStorage.getItem("token");
       setIsLoggedIn(!!token);
+
+      // If logged in, check for admin privileges
+      if (token) {
+        try {
+          const decodedToken: any = jwt.decode(token);
+          if (decodedToken.userType === "ADMIN") {
+            setIsAdmin(true);
+          }
+        } catch (error) {
+          console.error("Error decoding token", error);
+        }
+      } else {
+        setIsAdmin(false);
+      }
     };
 
     checkLoginStatus();
@@ -27,12 +49,35 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
+    setIsAdmin(false);  // Reset admin status on logout
     router.push("/");
     setMobileMenuOpen(false);
   };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchText(value);
+
+    if (value.length > 1) {
+      const res = await fetch(`/api/user/search?q=${value}`);
+      const data = await res.json();
+      setSearchResults(data);
+      setShowDropdown(true);
+    } else {
+      setSearchResults([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSelectUser = (userId: string) => {
+    setSearchText("");
+    setShowDropdown(false);
+    setSearchResults([]);
+    router.push(`/profile/${userId}`);
   };
 
   return (
@@ -47,26 +92,63 @@ export default function Navbar() {
             </span>
           </Link>
 
+          {/* Search Bar */}
+          <div className="relative hidden md:block w-1/3">
+            <div className="flex items-center border rounded-md px-3 py-2 bg-gray-50">
+              <Search className="h-4 w-4 text-gray-400 mr-2" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={handleSearchChange}
+                placeholder="Search users by name"
+                className="w-full bg-transparent outline-none text-sm"
+              />
+            </div>
+            {showDropdown && searchResults.length > 0 && (
+              <ul className="absolute mt-1 w-full bg-white shadow-lg rounded-md z-50 max-h-60 overflow-auto">
+                {searchResults.map((user) => (
+                  <li
+                    key={user.id}
+                    onClick={() => handleSelectUser(user.id)}
+                    className="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
+                  >
+                    {user.fullName} ({user.email})
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {isLoggedIn ? (
               <>
-                <Link href="/dashboard" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium transition-colors duration-150 flex items-center">
-                  <LayoutDashboard className="h-4 w-4 mr-1" />
-                  Dashboard
-                </Link>
-                <Link href="/activity" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium transition-colors duration-150 flex items-center">
-                  <Activity className="h-4 w-4 mr-1" />
-                  Activity
-                </Link>
-                <Link href="/communities" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium transition-colors duration-150 flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  Communities
-                </Link>
-                <Link href="/profile" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium transition-colors duration-150 flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  Profile
-                </Link>
+                {/* Admin Links */}
+                {isAdmin ? (
+                  <>
+                    
+                  </>
+                ) : (
+                  <>
+                    {/* Common User Links */}
+                    <Link href="/dashboard" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center">
+                      <LayoutDashboard className="h-4 w-4 mr-1" />
+                      Dashboard
+                    </Link>
+                    <Link href="/activity" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center">
+                      <Activity className="h-4 w-4 mr-1" />
+                      Activity
+                    </Link>
+                    <Link href="/communities" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center">
+                      <Users className="h-4 w-4 mr-1" />
+                      Communities
+                    </Link>
+                    <Link href="/profile" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      Profile
+                    </Link>
+                  </>
+                )}
 
                 <button 
                   onClick={handleLogout} 
@@ -78,7 +160,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium transition-colors duration-150">
+                <Link href="/login" className="px-3 py-2 text-gray-700 hover:text-indigo-600 rounded-md text-sm font-medium">
                   Login
                 </Link>
                 <Link href="/signup" className="ml-3 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium">
@@ -109,60 +191,39 @@ export default function Navbar() {
             <div className="flex flex-col space-y-2">
               {isLoggedIn ? (
                 <>
-                  <Link 
-                    href="/dashboard" 
-                    className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center"
-                    onClick={() => setMobileMenuOpen(false)}
+                  {isAdmin ? (
+                    <>
+                      
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/dashboard" className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                        Dashboard
+                      </Link>
+                      <Link href="/activity" className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                        Recent Alumni Activity
+                      </Link>
+                      <Link href="/communities" className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                        Communities
+                      </Link>
+                      <Link href="/profile" className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                        Profile
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="ml-3 px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-all duration-200 text-sm font-medium flex items-center w-full justify-center"
                   >
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                  <Link 
-                    href="/activity" 
-                    className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Activity className="h-4 w-4 mr-2" />
-                    Recent Alumni Activity
-                  </Link>
-                  <Link 
-                    href="/communities" 
-                    className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Communities
-                  </Link>
-                  <Link 
-                    href="/profile" 
-                    className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium flex items-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Link>
-                  <button 
-                    onClick={handleLogout} 
-                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium flex items-center"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
                     Logout
                   </button>
                 </>
               ) : (
                 <>
-                  <Link 
-                    href="/login" 
-                    className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
+                  <Link href="/login" className="px-3 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                     Login
                   </Link>
-                  <Link 
-                    href="/signup" 
-                    className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
+                  <Link href="/signup" className="ml-3 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                     Sign Up
                   </Link>
                 </>

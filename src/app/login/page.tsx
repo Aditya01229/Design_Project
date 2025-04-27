@@ -21,30 +21,37 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
+  
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await res.json();
-
+  
       if (!res.ok) {
         throw new Error(data.message || "Invalid credentials");
       }
-
+  
       localStorage.setItem("token", data.token);
       window.dispatchEvent(new Event("storage"));
-
-      router.push("/dashboard");
+  
+      // Redirect to appropriate dashboard based on user type
+      if (data.user.userType === 'ADMIN') {
+        router.push("/admin-dashboard");  // Admin's dashboard
+      } else {
+        router.push("/dashboard");  // Regular user's dashboard
+      }
+  
     } catch (error: any) {
       setError(error.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-50 py-12 sm:px-6 lg:px-8">
